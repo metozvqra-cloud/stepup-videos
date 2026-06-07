@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery Widget</title>
+</head>
+<body>
+
+<style>
+  /* ===== VARIABLES — change colors/sizes from one place ===== */
+  :root {
+    --primary:        #ff0000;
+    --primary-dim:    rgba(255, 0, 0, 0.35);
+    --surface-1:      #0f172a;
+    --surface-2:      #1e293b;
+    --eye-color:      #00ff00;
+    --border-subtle:  rgba(255, 255, 255, 0.09);
+    --shadow:         rgba(0, 0, 0, 0.45);
+    --char-size:      clamp(72px, 11vw, 108px);
+    --bubble-radius:  15px;
+    --speed-float:    3s;
+    --speed-pulse:    2.4s;
+    --speed-blink:    4.5s;
+  }
+
+  /* ===== WRAPPER ===== */
+  #dc-wrapper {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 9999;
+    display: flex;
+    align-items: flex-end;
+    gap: 0;
+    animation: dcSlideUp 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @keyframes dcSlideUp {
+    from { opacity: 0; transform: translateY(32px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+
+  /* ===== CHARACTER ===== */
+  #dc-character {
+    width: var(--char-size);
+    height: calc(var(--char-size) * 1.25);
+    flex-shrink: 0;
+    filter: drop-shadow(0 8px 18px var(--shadow));
+    animation: dcFloat var(--speed-float) ease-in-out infinite;
+  }
+
+  @keyframes dcFloat {
+    0%, 100% { transform: translateY(0);    }
+    50%       { transform: translateY(-9px); }
+  }
+
+  #dc-character svg { width: 100%; height: 100%; overflow: visible; }
+
+  /* SVG eye animations */
+  .dc-eye {
+    transform-origin: center;
+    animation: dcBlink var(--speed-blink) infinite;
+  }
+  @keyframes dcBlink {
+    0%, 87%, 100% { transform: scaleY(1);    }
+    91%            { transform: scaleY(0.05); }
+  }
+
+  .dc-eye-glow { animation: dcEyeGlow var(--speed-pulse) ease-in-out infinite; }
+  @keyframes dcEyeGlow {
+    0%, 100% { opacity: 0.5; r: 8; }
+    50%       { opacity: 1;   r: 10; }
+  }
+
+  .dc-spark { animation: dcSpark var(--speed-pulse) ease-in-out infinite; }
+  .dc-spark:nth-child(2) { animation-delay: 0.6s; }
+  .dc-spark:nth-child(3) { animation-delay: 1.2s; }
+  @keyframes dcSpark {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50%       { opacity: 1; transform: scale(1); }
+  }
+
+  /* ===== SPEECH BUBBLE ===== */
+  .dc-bubble {
+    position: relative;
+    align-self: center;
+    margin-bottom: calc(var(--char-size) * 0.22);
+    margin-left: 10px;
+    background: linear-gradient(135deg, var(--surface-1), var(--surface-2) 55%, var(--surface-1));
+    border: 1.5px solid var(--border-subtle);
+    border-radius: var(--bubble-radius);
+    padding: 11px 34px 14px 16px;
+    white-space: nowrap;
+    box-shadow:
+      0 6px 24px var(--shadow),
+      0 0 0 1px var(--primary-dim);
+    animation: dcBubblePulse var(--speed-pulse) ease-in-out infinite;
+  }
+
+  /* Tail arrow */
+  .dc-bubble::before {
+    content: '';
+    position: absolute;
+    left: -11px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 10px solid transparent;
+    border-right-color: var(--surface-1);
+    border-left-width: 0;
+  }
+
+  @keyframes dcBubblePulse {
+    0%, 100% { box-shadow: 0 6px 24px var(--shadow), 0 0 0 1px rgba(255,0,0,0.15); }
+    50%       { box-shadow: 0 10px 30px var(--shadow), 0 0 0 2px var(--primary-dim); }
+  }
+
+  /* Message text */
+  .dc-bubble-text {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    font-size: clamp(9px, 1.4vw, 13px);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin: 0;
+    background: linear-gradient(90deg, var(--primary), #ff6b6b, var(--primary));
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: dcTextShine 3s linear infinite;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  @keyframes dcTextShine {
+    0%   { background-position: 0% 0%;   }
+    100% { background-position: 200% 0%; }
+  }
+
+  .dc-fire {
+    display: inline-block;
+    animation: dcFire 0.42s ease-in-out infinite alternate;
+  }
+  @keyframes dcFire {
+    from { transform: scale(1)    rotate(-3deg); }
+    to   { transform: scale(1.15) rotate(3deg);  }
+  }
+
+  /* ===== CLOSE BUTTON ===== */
+  .dc-close {
+    position: absolute;
+    top: 5px;
+    right: 7px;
+    width: 20px;
+    height: 20px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 50%;
+    color: rgba(255,255,255,0.55);
+    font-size: 10px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+    padding: 0;
+  }
+  .dc-close:hover,
+  .dc-close:focus-visible {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    outline: none;
+  }
+
+  /* ===== COUNTDOWN BAR ===== */
+  .dc-timer {
+    position: absolute;
+    bottom: 0;
+    left: var(--bubble-radius);
+    right: var(--bubble-radius);
+    height: 2px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 0 0 var(--bubble-radius) var(--bubble-radius);
+    overflow: hidden;
+  }
+  .dc-timer-fill {
+    height: 100%;
+    width: 100%;
+    background: var(--primary);
+    transform-origin: left;
+    animation: dcTimer 15s linear forwards;
+  }
+  @keyframes dcTimer {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+  }
+
+  /* ===== RE-OPEN BUTTON ===== */
+  #dc-reopen {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    gap: 7px;
+    background: linear-gradient(135deg, var(--surface-1), var(--surface-2));
+    border: 1.5px solid var(--primary);
+    border-radius: 50px;
+    color: rgba(255,255,255,0.9);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    font-size: clamp(10px, 1.3vw, 12px);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 9px 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 18px rgba(255,0,0,0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: dcSlideUp 0.4s ease both;
+  }
+  #dc-reopen:hover,
+  #dc-reopen:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 7px 22px rgba(255,0,0,0.5);
+    outline: none;
+  }
+
+  /* ===== REDUCED MOTION — disable all animations ===== */
+  @media (prefers-reduced-motion: reduce) {
+    #dc-character,
+    .dc-bubble,
+    .dc-bubble-text,
+    .dc-fire,
+    .dc-eye,
+    .dc-eye-glow,
+    .dc-spark,
+    .dc-timer-fill,
+    #dc-wrapper {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 480px) {
+    #dc-wrapper  { left: 8px; bottom: 8px; }
+    #dc-reopen   { left: 8px; bottom: 8px; }
+    .dc-bubble   { margin-left: 8px; padding: 9px 30px 12px 13px; }
+  }
+
+  @media (max-width: 360px) {
+    /* Hide text on very small screens, show only the character */
+    .dc-bubble { display: none; }
+  }
+</style>
+
+<!-- DELIVERY CHARACTER WIDGET -->
+<div id="dc-wrapper" role="region" aria-label="Информация за доставка">
+
+  <!-- SVG Character -->
+  <div id="dc-character" aria-hidden="true">
+    <svg viewBox="0 0 100 126" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="dc-eye-filter">
+          <feGaussianBlur stdDeviation="2.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="dc-body-shadow">
+          <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.55)"/>
+        </filter>
+        <filter id="dc-red-glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <linearGradient id="dc-hoodie" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%"   stop-color="#161616"/>
+          <stop offset="50%"  stop-color="#1f1f1f"/>
+          <stop offset="100%" stop-color="#080808"/>
+        </linearGradient>
+        <radialGradient id="dc-head" cx="38%" cy="32%" r="62%">
+          <stop offset="0%"   stop-color="#2c2c2c"/>
+          <stop offset="100%" stop-color="#040404"/>
+        </radialGradient>
+        <linearGradient id="dc-skin" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%"   stop-color="#c8864a"/>
+          <stop offset="100%" stop-color="#9e5226"/>
+        </linearGradient>
+        <linearGradient id="dc-shoe-l" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ff0000"/>
+          <stop offset="100%" stop-color="#cc0000"/>
+        </linearGradient>
+        <linearGradient id="dc-shoe-r" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#cc0000"/>
+          <stop offset="100%" stop-color="#990000"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Ground glow -->
+      <ellipse cx="50" cy="122" rx="30" ry="5" fill="rgba(255,0,0,0.12)" filter="url(#dc-red-glow)"/>
+
+      <!-- LEGS -->
+      <rect x="30" y="92" width="14" height="26" rx="5.5" fill="#111"/>
+      <rect x="56" y="92" width="14" height="26" rx="5.5" fill="#0c0c0c"/>
+
+      <!-- SHOES -->
+      <rect x="26" y="113" width="20" height="8"  rx="4.5" fill="url(#dc-shoe-l)"/>
+      <rect x="54" y="113" width="20" height="8"  rx="4.5" fill="url(#dc-shoe-r)"/>
+      <!-- Shoe sole detail -->
+      <rect x="26" y="118" width="20" height="2"  rx="1" fill="rgba(255,255,255,0.12)"/>
+      <rect x="54" y="118" width="20" height="2"  rx="1" fill="rgba(255,255,255,0.08)"/>
+
+      <!-- BODY — hoodie -->
+      <rect x="20" y="60" width="60" height="38" rx="11" fill="url(#dc-hoodie)" filter="url(#dc-body-shadow)"/>
+      <!-- Zipper line -->
+      <line x1="50" y1="62" x2="50" y2="90" stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/>
+      <!-- Hood rim -->
+      <path d="M20 70 Q50 53 80 70" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1.5"/>
+      <!-- Chest logo bar -->
+      <rect x="37" y="69" width="26" height="4.5" rx="2.5" fill="#ff0000" opacity="0.95" filter="url(#dc-red-glow)"/>
+      <!-- Kangaroo pocket -->
+      <rect x="31" y="80" width="38" height="15" rx="6.5" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+
+      <!-- LEFT ARM -->
+      <rect x="5"  y="62" width="17" height="32" rx="7.5" fill="url(#dc-hoodie)" transform="rotate(6,13,78)"/>
+      <circle cx="9"  cy="96" r="7.5" fill="url(#dc-skin)"/>
+
+      <!-- RIGHT ARM -->
+      <rect x="78" y="60" width="17" height="32" rx="7.5" fill="url(#dc-hoodie)" transform="rotate(-9,87,76)"/>
+      <circle cx="91" cy="93" r="7.5" fill="url(#dc-skin)"/>
+
+      <!-- HEAD -->
+      <circle cx="50" cy="38" r="27" fill="url(#dc-head)" stroke="white" stroke-width="2.5" filter="url(#dc-body-shadow)"/>
+
+      <!-- EYE GLOWS -->
+      <circle class="dc-eye-glow" cx="39" cy="36" r="8"  fill="rgba(0,255,0,0.18)"/>
+      <circle class="dc-eye-glow" cx="61" cy="36" r="8"  fill="rgba(0,255,0,0.18)"/>
+
+      <!-- EYES -->
+      <ellipse class="dc-eye" cx="39" cy="36" rx="6.5" ry="7"   fill="#00ff00" filter="url(#dc-eye-filter)"/>
+      <circle  cx="39" cy="36" r="3"   fill="#004400"/>
+      <circle  cx="37.5" cy="34.5" r="1.5" fill="rgba(255,255,255,0.65)"/>
+
+      <ellipse class="dc-eye" cx="61" cy="36" rx="6.5" ry="7"   fill="#00ff00" filter="url(#dc-eye-filter)"/>
+      <circle  cx="61" cy="36" r="3"   fill="#004400"/>
+      <circle  cx="59.5" cy="34.5" r="1.5" fill="rgba(255,255,255,0.65)"/>
+
+      <!-- MASK (lower face) -->
+      <rect x="28" y="45" width="44" height="17" rx="7" fill="#0a0a0a" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+      <line x1="37" y1="53.5" x2="63" y2="53.5" stroke="rgba(255,255,255,0.09)" stroke-width="1" stroke-dasharray="3.5,3"/>
+
+      <!-- FLOATING SPARKS -->
+      <circle class="dc-spark" cx="82" cy="22" r="2.8" fill="#ff0000"/>
+      <circle class="dc-spark" cx="89" cy="38" r="2"   fill="#ff4444"/>
+      <circle class="dc-spark" cx="78" cy="48" r="1.5" fill="#ff0000"/>
+    </svg>
+  </div>
+
+  <!-- Speech Bubble -->
+  <div class="dc-bubble" role="status" aria-atomic="true" aria-live="polite">
+    <p class="dc-bubble-text">
+      <span class="dc-fire" aria-hidden="true">🔥</span>
+      Доставка от 3 до 10 работни дни
+      <span class="dc-fire" aria-hidden="true">🔥</span>
+    </p>
+    <button class="dc-close" aria-label="Затвори известието">✕</button>
+    <div class="dc-timer" aria-hidden="true">
+      <div class="dc-timer-fill"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Re-open button (appears after dismiss) -->
+<button id="dc-reopen" aria-label="Покажи информация за доставка">
+  🚚 Доставка
+</button>
+
+<script>
+(function () {
+  var wrapper   = document.getElementById('dc-wrapper');
+  var reopenBtn = document.getElementById('dc-reopen');
+  var closeBtn  = wrapper.querySelector('.dc-close');
+  var AUTO_HIDE = 15000;
+  var hideTimer;
+
+  function hide() {
+    clearTimeout(hideTimer);
+    wrapper.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+    wrapper.style.opacity    = '0';
+    wrapper.style.transform  = 'translateY(18px)';
+    setTimeout(function () {
+      wrapper.style.display  = 'none';
+      reopenBtn.style.display = 'flex';
+    }, 450);
+  }
+
+  function show() {
+    reopenBtn.style.display = 'none';
+    wrapper.style.display   = 'flex';
+    wrapper.style.opacity   = '0';
+    wrapper.style.transform = 'translateY(18px)';
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        wrapper.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+        wrapper.style.opacity    = '1';
+        wrapper.style.transform  = 'translateY(0)';
+      });
+    });
+    hideTimer = setTimeout(hide, AUTO_HIDE);
+  }
+
+  closeBtn.addEventListener('click', hide);
+  reopenBtn.addEventListener('click', show);
+
+  hideTimer = setTimeout(hide, AUTO_HIDE);
+}());
+</script>
+
+</body>
+</html>
